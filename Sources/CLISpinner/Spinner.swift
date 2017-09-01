@@ -49,13 +49,19 @@ public class Spinner {
 
     /// Start the spinner.
     public func start() {
-        hideCursor(true)
+        print()
         isRunning = true
         queue.async { [weak self] in
             guard let `self` = self else { return }
-
+            
             while self.isRunning {
-                self.render()
+                DispatchQueue.main.async { [weak self] in
+                    guard let `self` = self else { return }
+                    guard self.isRunning else {
+                        return
+                    }
+                    self.render()
+                }
                 self.wait(seconds: self.speed)
             }
         }
@@ -67,7 +73,7 @@ public class Spinner {
     ///   - text: Text to display as a final value when stopping.
     ///   - symbol: A symbol to replace the spinner with when stopping.
     ///   - terminator: The string to print after stopping. Defaults to newline ("\n").
-    public func stop(text: String? = nil, symbol: String? = nil, terminator: String = "\n") {
+    public func stop(text: String? = nil, symbol: String? = nil, terminator: String = "") {
         if let text = text {
             self.text = text
         }
@@ -76,7 +82,6 @@ public class Spinner {
         }
         self.render()
         self.isRunning = false
-        hideCursor(false)
         print(terminator: terminator)
     }
 
@@ -125,6 +130,7 @@ public class Spinner {
     }
 
     func resetCursor() {
+        print("\u{001B}[F", terminator: "")
         print("\r", terminator: "")
     }
 
@@ -134,23 +140,9 @@ public class Spinner {
     }
 
     func output(_ value: String) {
-        print(value, terminator: "")
+        print(value)
         fflush(stdout) // necessary for the carriage return in start()
     }
 
-    func hideCursor(_ hide: Bool) {
-        if hide {
-            self.output("\u{001B}[?25l")
-        } else {
-            self.output("\u{001B}[?25h")
-        }
-    }
-
-    /// Unhide the cursor.
-    ///
-    /// - Note: This should most definitely be called on a SIGINT in your project.
-    public func unhideCursor() {
-        self.hideCursor(false)
-    }
 }
 
